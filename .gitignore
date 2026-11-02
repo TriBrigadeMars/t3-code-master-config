@@ -1,0 +1,9 @@
+build/
+snapshots/
+__pycache__/
+*.pyc
+*.pyo
+*.bak-t3cfg-*
+.env
+secrets/
+.DS_Store

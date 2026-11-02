@@ -1,0 +1,18 @@
+[Unit]
+Description=Validated local Qwen3.8 27B inference (tuned Intel flash-attention router)
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+Environment=QWEN_INFERENCE_PORT=${QWEN_PORT}
+ExecStart=/usr/bin/python3 %h/.local/share/qwen-inference/serve.py
+WorkingDirectory=%h/.local/share/qwen-inference
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+Nice=0
+
+[Install]
+WantedBy=default.target

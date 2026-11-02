@@ -1,0 +1,51 @@
+{
+  "id": "laptop",
+  "label": "Mars Laptop (CachyOS)",
+  "hostname": "mars-laptop",
+  "os": "linux",
+  "tailscale_ip": "100.82.15.19",
+  "status": "documented",
+  "notes": "Live T3/OMP/OpenCode config still requires an interactive Tailscale SSH check. The endpoint is the desktop gateway.",
+  "paths": {
+    "t3_userdata": "~/.t3/userdata",
+    "omp_agent": "~/.omp/agent",
+    "omp_profile": "~/.omp/profiles/qwen/agent",
+    "opencode": "~/.config/opencode/opencode.json",
+    "qwen_config": "~/.config/qwen-inference",
+    "qwen_share": "~/.local/share/qwen-inference",
+    "state": "~/.config/t3-master",
+    "bin": "~/.local/bin"
+  },
+  "qwen": {
+    "role": "client",
+    "endpoint": "http://100.95.87.91:1235/v1",
+    "health": "http://100.95.87.91:1235/health",
+    "gateway": null,
+    "context_window": 32768,
+    "max_output_tokens": 4096,
+    "default_effort": "medium"
+  },
+  "t3": {
+    "set_default": true,
+    "default_model": {
+      "instanceId": "pi",
+      "model": "lm-studio/qwen/qwen3.8-27b"
+    },
+    "local_providers": [
+      "pi",
+      "opencode"
+    ],
+    "opencode_provider": "qwen-local",
+    "pi_binary": "~/.bun/bin/omp"
+  },
+  "cursor": {
+    "favorites": [
+      "composer-2.5",
+      "grok-4.6",
+      "grok-4.7"
+    ],
+    "keep_hidden": [
+      "grok-4.5"
+    ]
+  }
+}

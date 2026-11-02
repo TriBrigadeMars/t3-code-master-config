@@ -1,0 +1,51 @@
+{
+  "id": "server",
+  "label": "Mars Server (Windows / CachyOS dual boot)",
+  "hostname": "mars-server",
+  "os": "windows",
+  "tailscale_ip": "100.111.54.87",
+  "status": "offline",
+  "notes": "Provisional until the machine is online. Defaults to the desktop Qwen gateway. If this machine runs its own router, set qwen.role=server and qwen.endpoint=http://127.0.0.1:1234/v1.",
+  "paths": {
+    "t3_userdata": "%USERPROFILE%\\.t3\\userdata",
+    "omp_agent": "%USERPROFILE%\\.omp\\agent",
+    "omp_profile": "%USERPROFILE%\\.omp\\profiles\\qwen\\agent",
+    "opencode": "%APPDATA%\\opencode\\opencode.json",
+    "qwen_config": "%USERPROFILE%\\.config\\qwen-inference",
+    "qwen_share": "%USERPROFILE%\\.local\\share\\qwen-inference",
+    "state": "%USERPROFILE%\\.config\\t3-master",
+    "bin": "%USERPROFILE%\\.local\\bin"
+  },
+  "qwen": {
+    "role": "client",
+    "endpoint": "http://100.95.87.91:1235/v1",
+    "health": "http://100.95.87.91:1235/health",
+    "gateway": null,
+    "context_window": 32768,
+    "max_output_tokens": 4096,
+    "default_effort": "medium"
+  },
+  "t3": {
+    "set_default": true,
+    "default_model": {
+      "instanceId": "pi",
+      "model": "lm-studio/qwen/qwen3.8-27b"
+    },
+    "local_providers": [
+      "pi",
+      "opencode"
+    ],
+    "opencode_provider": "qwen-local",
+    "pi_binary": "%USERPROFILE%\\.bun\\bin\\omp.exe"
+  },
+  "cursor": {
+    "favorites": [
+      "composer-2.5",
+      "grok-4.6",
+      "grok-4.7"
+    ],
+    "keep_hidden": [
+      "grok-4.5"
+    ]
+  }
+}

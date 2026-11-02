@@ -1,0 +1,58 @@
+{
+  "plan": "Cursor Plus",
+  "source": "T3 Code Cursor provider status / provider log, 2026-10-27",
+  "errorIfMissing": "Model unavailable on Plus Plus includes Composer 2.5, Grok 4.7, Grok 4.6, and Grok 4.5 with fixed settings. Switch to an included model to continue.",
+  "models": {
+    "composer-2.5": {
+      "label": "Composer 2.5",
+      "options": [
+        {
+          "id": "fastMode",
+          "value": "false"
+        }
+      ],
+      "native": {
+        "fast": false
+      }
+    },
+    "grok-4.6": {
+      "label": "Grok 4.6",
+      "options": [
+        {
+          "id": "effort",
+          "value": "medium"
+        },
+        {
+          "id": "fastMode",
+          "value": "false"
+        }
+      ],
+      "native": {
+        "reasoning_effort": "medium",
+        "fast": false
+      }
+    },
+    "grok-4.7": {
+      "label": "Grok 4.7",
+      "options": [
+        {
+          "id": "contextWindow",
+          "value": "256k"
+        },
+        {
+          "id": "fastMode",
+          "value": "false"
+        },
+        {
+          "id": "reasoning_effort",
+          "value": "medium"
+        }
+      ],
+      "native": {
+        "contextWindow": "256k",
+        "fast": false,
+        "reasoning_effort": "medium"
+      }
+    }
+  }
+}

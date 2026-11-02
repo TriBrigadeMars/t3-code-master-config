@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""Launch the isolated local-only Qwen OMP baseline.
+
+The launcher is deliberately fail-closed: if the configured OpenAI-compatible
+endpoint does not advertise the selected model, it exits instead of falling back
+to a cloud provider.
+
+Generated state lives in ``~/.config/t3-master/qwen.env``. Every machine uses the
+same launcher; only that env file differs.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+DEFAULT_ENV = Path.home() / ".config" / "t3-master" / "qwen.env"
+ENV_PATH = Path(os.environ.get("OMP_QWEN_ENV", DEFAULT_ENV))
+VARIANTS = {
+    "q4": ("qwen/qwen3.8-27b", "variant-q4.yml"),
+    "unsloth": ("qwen/qwen3.8-27b-unsloth", "variant-unsloth.yml"),
+    "orcarouter": ("qwen/qwen3.8-27b-uncensored", "variant-orcarouter.yml"),
+}
+CONTROLLED = {
+    "--profile",
+    "--config",
+    "--model",
+    "--provider",
+    "--models",
+    "--smol",
+    "--slow",
+    "--plan",
+    "--system-prompt",
+    "--system-prompt-template",
+    "--append-system-prompt",
+    "--tools",
+    "--extension",
+    "-e",
+    "--hook",
+    "--plugin-dir",
+    "--prewalk",
+    "--plan-yolo",
+    "--advisor",
+}
+
+
+def load_env() -> dict[str, str]:
+    values: dict[str, str] = {}
+    if ENV_PATH.is_file():
+        for line in ENV_PATH.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            values[key.strip()] = value.strip()
+    for key in (
+        "OMP_QWEN_BASE_URL",
+        "OMP_QWEN_AGENT_DIR",
+        "OMP_QWEN_OMP_BIN",
+        "OMP_QWEN_TOOLS",
+        "OMP_QWEN_CONTEXT_WINDOW",
+        "OMP_QWEN_MAX_OUTPUT_TOKENS",
+    ):
+        if key in os.environ:
+            values[key] = os.environ[key]
+    return values
+
+
+def inventory(base_url: str) -> dict[str, dict]:
+    url = base_url.rstrip("/") + "/models"
+    with urllib.request.urlopen(url, timeout=8) as response:
+        payload = json.load(response)
+    return {item["id"]: item for item in payload.get("data", []) if "id" in item}
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Standalone local Qwen OMP. Remaining arguments go to OMP.",
+        epilog='Examples: omp-qwen --goal "Finish the plan"; omp-qwen --variant unsloth; omp-qwen --check',
+    )
+    parser.add_argument("--variant", choices=sorted(VARIANTS), default="q4")
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Check the endpoint and all three advertised model IDs; do not run OMP.",
+    )
+    options, remaining = parser.parse_known_args()
+
+    values = load_env()
+    base_url = values.get("OMP_QWEN_BASE_URL", "")
+    agent_dir = Path(values.get("OMP_QWEN_AGENT_DIR", "")).expanduser()
+    omp_bin = Path(values.get("OMP_QWEN_OMP_BIN", "")).expanduser()
+    tools = values.get(
+        "OMP_QWEN_TOOLS",
+        "read,bash,edit,write,glob,grep,context_notes,new_context,goal",
+    )
+    context_window = int(values.get("OMP_QWEN_CONTEXT_WINDOW", "32768"))
+
+    if not base_url or not agent_dir or not omp_bin:
+        print(f"missing OMP Qwen state; expected {ENV_PATH}", file=sys.stderr)
+        return 1
+    if not omp_bin.is_file():
+        print(f"OMP binary not found: {omp_bin}", file=sys.stderr)
+        return 1
+
+    if options.check:
+        try:
+            models = inventory(base_url)
+        except (OSError, ValueError, urllib.error.URLError) as error:
+            print(f"endpoint unreachable: {base_url}: {error}", file=sys.stderr)
+            return 1
+        result = {}
+        ok = True
+        for name, (model_id, _) in VARIANTS.items():
+            present = model_id in models
+            ok = ok and present
+            result[name] = {
+                "model": model_id,
+                "endpoint": base_url,
+                "advertised": present,
+                "context_window": context_window,
+            }
+        print(json.dumps(result, indent=2))
+        return 0 if ok else 1
+
+    for argument in remaining:
+        if argument.split("=", 1)[0] in CONTROLLED:
+            parser.error(
+                argument
+                + " is controlled by this baseline; select --variant or use ordinary omp"
+            )
+
+    model_id, overlay = VARIANTS[options.variant]
+    try:
+        models = inventory(base_url)
+    except (OSError, ValueError, urllib.error.URLError) as error:
+        print(f"endpoint unreachable: {base_url}: {error}", file=sys.stderr)
+        return 1
+    if model_id not in models:
+        print(
+            f"{model_id} is not advertised by {base_url}; no cloud fallback will be attempted.",
+            file=sys.stderr,
+        )
+        return 1
+
+    command = [
+        str(omp_bin),
+        "--profile",
+        "qwen",
+        "--config",
+        str(agent_dir / "config.yml"),
+        "--config",
+        str(agent_dir / overlay),
+        "--system-prompt",
+        str(agent_dir / "SYSTEM.md"),
+        "--tools",
+        tools,
+        "--no-extensions",
+        "--no-skills",
+        "--no-lsp",
+        "--no-title",
+        "--no-prewalk",
+        "--model",
+        "lm-studio/" + model_id,
+        *remaining,
+    ]
+    environment = os.environ.copy()
+    for name in list(environment):
+        if name.startswith("T3_") or name in {
+            "OMP_PROFILE",
+            "PI_PROFILE",
+            "PI_CODING_AGENT_DIR",
+            "PI_SMOL_MODEL",
+            "PI_SLOW_MODEL",
+            "PI_PLAN_MODEL",
+        }:
+            environment.pop(name, None)
+    os.execve(str(omp_bin), command, environment)
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

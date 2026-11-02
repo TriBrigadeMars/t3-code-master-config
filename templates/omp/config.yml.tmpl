@@ -1,0 +1,90 @@
+# Isolated local-only Qwen baseline for OMP.
+# The omp-qwen launcher loads this plus a variant overlay so project config
+# cannot silently change the endpoint, context budget, or fallback behavior.
+setupVersion: 2
+modelRoles:
+  default: ${DEFAULT_MODEL}
+  smol: ${DEFAULT_MODEL}
+  slow: ${DEFAULT_MODEL}
+  plan: ${DEFAULT_MODEL}
+  vision: ${DEFAULT_MODEL}
+  advisor: ${DEFAULT_MODEL}
+enabledModels:
+  - lm-studio/qwen/qwen3.8-27b
+  - lm-studio/qwen/qwen3.8-27b-unsloth
+  - lm-studio/qwen/qwen3.8-27b-uncensored
+enabledProviders: []
+disabledProviders:
+  - openrouter
+  - anthropic
+  - openai
+  - openai-codex
+  - google
+  - copilot
+  - unsloth-studio
+  - llama.cpp
+  - ollama
+  - apple
+  - omp-plugins
+  - agent-plugins
+  - claude-plugins
+  - claude
+  - codex
+  - gemini
+  - opencode
+  - cursor
+  - windsurf
+  - cline
+  - github
+  - vscode
+  - mcp-json
+  - ssh-json
+compaction:
+  enabled: true
+  experimentalContextManagement: true
+  thresholdPercent: 80
+  thresholdTokens: -1
+  modelThresholdsEnabled: true
+  modelThresholds:
+    "lm-studio/*": "80%"
+  keepRecentTokens: 4096
+  midTurnEnabled: true
+  autoContinue: true
+  asyncEnabled: false
+retry:
+  modelFallback: false
+  usageAwareFallback: false
+contextPromotion:
+  enabled: false
+goal:
+  enabled: true
+  continuationModes:
+    - interactive
+    - rpc
+advisor:
+  enabled: false
+prewalk:
+  enabled: false
+  auto: "off"
+autolearn:
+  enabled: false
+memory:
+  backend: "off"
+providers:
+  cacheWarming: "off"
+tools:
+  xdev: false
+  outputMaxColumns: 240
+mcp:
+  enableProjectConfig: false
+startup:
+  setupWizard: false
+  checkUpdate: false
+  quiet: true
+  changelogMode: hidden
+defaultThinkingLevel: ${DEFAULT_EFFORT}
+symbolPreset: nerd
+composer:
+  shape: band
+theme:
+  dark: titanium

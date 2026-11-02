@@ -1,0 +1,36 @@
+{
+  "canonical": "qwen/qwen3.8-27b",
+  "context_window": 32768,
+  "max_output_tokens": 4096,
+  "default_effort": "medium",
+  "providers": {
+    "omp": "lm-studio",
+    "opencode": "qwen-local"
+  },
+  "models": [
+    {
+      "id": "qwen/qwen3.8-27b",
+      "name": "Qwen3.8 27B · Local Q4_K_M",
+      "variant": "q4",
+      "opencode_favorite": true,
+      "weights": "~/.cache/huggingface/hub/lmstudio-community/Qwen3.8-27B-GGUF/Qwen3.8-27B-Q4_K_M.gguf",
+      "mmproj": "~/.cache/huggingface/hub/lmstudio-community/Qwen3.8-27B-GGUF/mmproj-Qwen3.8-27B-BF16.gguf"
+    },
+    {
+      "id": "qwen/qwen3.8-27b-unsloth",
+      "name": "Qwen3.8 27B · Local Unsloth UD-IQ4_XS",
+      "variant": "unsloth",
+      "opencode_favorite": false,
+      "weights": "~/.cache/huggingface/hub/models--unsloth--Qwen3.8-27B-GGUF/snapshots/4ca720788d1e01f1bff70c033e0d0028fd02e502/Qwen3.8-27B-UD-IQ4_XS.gguf",
+      "mmproj": "~/.cache/huggingface/hub/models--unsloth--Qwen3.8-27B-GGUF/snapshots/4ca720788d1e01f1bff70c033e0d0028fd02e502/mmproj-F16.gguf"
+    },
+    {
+      "id": "qwen/qwen3.8-27b-uncensored",
+      "name": "Qwen3.8 27B · Local OrcaRouter Uncensored Q4_K_M",
+      "variant": "orcarouter",
+      "opencode_favorite": false,
+      "weights": "~/.cache/huggingface/hub/models--chimingw--Qwen3.8-27B-Uncensored-OrcaRouter-GGUF/snapshots/58ebd123013160600229eda180b5b17f3fb7af9d/Qwen3.8-27B-Uncensored-OrcaRouter-Q4_K_M.gguf",
+      "mmproj": "~/.cache/huggingface/hub/lmstudio-community/Qwen3.8-27B-GGUF/mmproj-Qwen3.8-27B-BF16.gguf"
+    }
+  ]
+}

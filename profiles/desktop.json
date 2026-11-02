@@ -1,0 +1,68 @@
+{
+  "id": "desktop",
+  "label": "Mars Desktop (CachyOS)",
+  "hostname": "mars-desktop-cachy",
+  "os": "linux",
+  "tailscale_ip": "100.95.87.91",
+  "status": "audited",
+  "paths": {
+    "t3_userdata": "~/.t3/userdata",
+    "omp_agent": "~/.omp/agent",
+    "omp_profile": "~/.omp/profiles/qwen/agent",
+    "opencode": "~/.config/opencode/opencode.json",
+    "qwen_config": "~/.config/qwen-inference",
+    "qwen_share": "~/.local/share/qwen-inference",
+    "state": "~/.config/t3-master",
+    "bin": "~/.local/bin"
+  },
+  "qwen": {
+    "role": "server",
+    "endpoint": "http://127.0.0.1:1234/v1",
+    "health": "http://127.0.0.1:1234/health",
+    "gateway": {
+      "listen_host": "100.95.87.91",
+      "listen_port": 1235,
+      "allowed_peers": [
+        "100.82.15.19",
+        "100.95.87.91"
+      ]
+    },
+    "context_window": 32768,
+    "max_output_tokens": 4096,
+    "default_effort": "medium",
+    "server": {
+      "port": 1234,
+      "binary": "~/.local/share/qwen-inference/llama.cpp/build-intelfa/bin/llama-server",
+      "draft_model": "~/.local/share/qwen-inference/models/Qwen3.8-27B-DFlash2-Q4_K_M.gguf",
+      "models_preset": "~/.config/qwen-inference/models-preset.ini",
+      "models_max": 1,
+      "parallel": 1,
+      "ubatch": 256,
+      "draft": 7,
+      "pmin": 0.5
+    }
+  },
+  "t3": {
+    "set_default": false,
+    "default_model": {
+      "instanceId": "codex",
+      "model": "gpt-6-luna"
+    },
+    "local_providers": [
+      "pi",
+      "opencode"
+    ],
+    "opencode_provider": "qwen-local",
+    "pi_binary": "~/.bun/bin/omp"
+  },
+  "cursor": {
+    "favorites": [
+      "composer-2.5",
+      "grok-4.6",
+      "grok-4.7"
+    ],
+    "keep_hidden": [
+      "grok-4.5"
+    ]
+  }
+}
