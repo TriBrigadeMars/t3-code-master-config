@@ -120,15 +120,43 @@ exec "/path/to/t3code" "$@"
 Then update the desktop entry / shortcut to run that wrapper. This is the only
 way to make the check “required” at launch without modifying T3 itself.
 
+## T3 Connect is not an environment link
+
+This is the distinction that matters:
+
+- `t3 connect status` being on and showing a connected tunnel means **this
+  machine is reachable from other devices**.
+- `t3 environment list` returning `No linked environments` means **this
+  machine's agents cannot address another T3 environment**.
+- The “4 connections” in the relay status are Cloudflare tunnel edges for this
+  one environment, not four T3 environments.
+
+To let this environment's agents work on the laptop/server, link them from this
+desktop:
+
+```bash
+t3 environment link <their-t3-connect-url> --access full-access
+# If the other side requires a pairing code:
+#   t3 pair                      # run there
+#   t3 environment link <url> --pairing-code <code> --access full-access
+```
+
+Get the URL from that environment's T3 Connect/Connections settings. After
+linking, `t3 environment list` shows the environment and its id. The repo's sync
+timer still has to be installed **on that machine**; linking authorizes this
+desktop's agents to work there, but it does not install a systemd timer or
+Windows scheduled task for you.
+
 ## Current access blockers
 
 - `mars-laptop` is online but Tailscale SSH requires an interactive check. The
   timer cannot be installed there until that check is approved or the commands
   are run locally.
-- `mars-server` is offline. Its profile is ready, but its timer cannot be
-  installed until it is online.
-- No T3 peer environments are linked in the desktop’s
-  `peer_environment_links` table, so T3 cannot fan the sync out for you.
+- `mars-server` is offline on the tailnet. Its profile is ready, but its timer
+  cannot be installed until it is online.
+- The desktop has T3 Connect enabled, but `t3 environment list` currently says
+  `No linked environments`. Use `t3 environment link` above, or run the
+  bootstrap locally on each machine.
 
 ## Safety properties
 

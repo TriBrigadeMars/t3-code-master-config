@@ -172,8 +172,10 @@ applied from this desktop until those machines are reachable.
 
 ### Automatic pull
 
-Git cannot push into a workstation, so each machine needs a pull agent. The repo
-includes one:
+Git cannot push into a workstation, so each machine needs a pull agent. T3
+Connect being on only makes this machine reachable; it does not create an
+environment link (`t3 environment list` must show the other machine). The repo
+includes the pull agent:
 
 ```bash
 ./bin/t3cfg-sync --profile desktop --apply
