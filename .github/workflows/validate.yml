@@ -15,6 +15,7 @@ jobs:
       - name: Compile
         run: |
           python -m py_compile scripts/t3cfg.py
+          python -m py_compile scripts/t3cfg_sync.py
           python -m py_compile templates/omp/omp-qwen.py
           python -m py_compile templates/qwen/tailnet-gateway.py
       - name: Test

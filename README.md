@@ -114,7 +114,10 @@ profiles/                 one JSON profile per machine
 catalog/                  canonical Cursor Plus and Qwen model definitions
 templates/                OMP, systemd, and gateway source files
 scripts/t3cfg.py          render / plan / apply / doctor / snapshot
-docs/                     Cursor Plus, local inference, runbook, security
+scripts/t3cfg_sync.py     pull / apply agent for timers and launch wrappers
+bin/t3cfg-sync            shell/Windows wrappers for the pull agent
+sync/systemd/             Linux user timer + service templates
+docs/                     Cursor Plus, local inference, sync, runbook, security
 tests/                    stdlib-only regression tests
 .github/workflows/        CI validation
 ```
@@ -166,6 +169,35 @@ running unless `--force` is passed. Prefer quitting T3.
 
 The laptop and server profiles are rendered and tested in CI, but they cannot be
 applied from this desktop until those machines are reachable.
+
+### Automatic pull
+
+Git cannot push into a workstation, so each machine needs a pull agent. The repo
+includes one:
+
+```bash
+./bin/t3cfg-sync --profile desktop --apply
+```
+
+It refuses a dirty tracked worktree, uses `git pull --ff-only`, takes a lock,
+renders before writing, applies the profile, and **defers T3 settings while T3 is
+open**. Add `--strict` when you want the run to fail if T3 settings were deferred
+or `doctor` fails.
+
+Install the systemd user timer on each Linux machine:
+
+```bash
+cd ~/t3-code-master-config
+mkdir -p ~/.config/systemd/user
+sed 's/@PROFILE@/desktop/' sync/systemd/t3cfg-sync.service.tmpl \
+  > ~/.config/systemd/user/t3cfg-sync.service
+cp sync/systemd/t3cfg-sync.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now t3cfg-sync.timer
+```
+
+Windows Task Scheduler and the launch-wrapper “require” pattern are in
+[`docs/auto-sync.md`](docs/auto-sync.md).
 
 ---
 
@@ -271,3 +303,5 @@ The full evidence and exact diffs are in [`PROPOSAL.md`](PROPOSAL.md).
   troubleshooting.
 - [`docs/security.md`](docs/security.md) — token exposure, redaction, and
   repository policy.
+- [`docs/auto-sync.md`](docs/auto-sync.md) — automatic pull/apply on the
+  laptop and server, including the one-time bootstrap.

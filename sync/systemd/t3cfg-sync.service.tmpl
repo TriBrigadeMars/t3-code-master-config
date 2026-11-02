@@ -1,0 +1,12 @@
+[Unit]
+Description=Pull and apply the T3 Code master configuration
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/t3-code-master-config
+Environment=GIT_TERMINAL_PROMPT=0
+ExecStart=%h/t3-code-master-config/bin/t3cfg-sync --profile @PROFILE@ --apply
+# Add --strict to make deferred T3 settings or doctor failures fail the timer.
+Nice=10
