@@ -248,11 +248,15 @@ Windows Task Scheduler and the launch-wrapper “require” pattern are in
 
 ## Verification
 
-`doctor` checks the files and the live endpoint:
+`doctor` checks the files and the live endpoint; `guard` is the read-only
+tripwire for the `Model unavailable on Plus` class (missing/wrong Cursor
+favorite `options`, grok-4.7 hidden). The sync timer runs `guard` on every
+pass, even while T3 is open:
 
 ```bash
 ./bin/t3cfg doctor --profile desktop
 ./bin/t3cfg doctor --profile laptop
+./bin/t3cfg guard --profile laptop
 ```
 
 It reports PASS/WARN/FAIL for:

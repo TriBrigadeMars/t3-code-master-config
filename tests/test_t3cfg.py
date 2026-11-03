@@ -3,6 +3,7 @@ import re
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -110,6 +111,67 @@ class T3PatchTests(unittest.TestCase):
             merged["providerModelPreferences"]["pi"]["hiddenModels"],
         )
         self.assertTrue(changes)
+
+
+class CursorGuardTests(unittest.TestCase):
+    """Regression tests for the 2026-11-02 mars-laptop 'Model unavailable on
+    Plus' outage: the live cursor favorites had no `options` at all."""
+
+    @staticmethod
+    def _outage_settings() -> dict:
+        return t3cfg.load_json(
+            Path(__file__).parent / "fixtures/outage-laptop/settings.json"
+        )
+
+    def test_guard_flags_optionless_favorites(self):
+        cursor, _ = t3cfg.load_catalogs()
+        defects = t3cfg.cursor_plus_defects(self._outage_settings(), cursor)
+        joined = "\n".join(defects)
+        self.assertIn("composer-2.5", joined)
+        self.assertIn("grok-4.7", joined)
+        self.assertIn("Model unavailable on Plus", joined)
+
+    def test_guard_flags_hidden_grok47(self):
+        cursor, _ = t3cfg.load_catalogs()
+        settings = {"favorites": [], "providerModelPreferences": {"cursor": {"hiddenModels": ["grok-4.7"]}}}
+        defects = t3cfg.cursor_plus_defects(settings, cursor)
+        self.assertTrue(any("hiddenModels" in defect for defect in defects))
+
+    def test_guard_passes_canonical_state(self):
+        cursor, _ = t3cfg.load_catalogs()
+        settings = t3cfg.load_json(
+            Path(__file__).parent / "fixtures/canonical-cursor/settings.json"
+        )
+        self.assertEqual(t3cfg.cursor_plus_defects(settings, cursor), [])
+
+    def test_merge_repairs_the_outage_state(self):
+        """The applier must be able to fix the laptop's broken state on rerun."""
+        profile = t3cfg.load_profile("laptop")
+        patch = t3cfg.build_t3_patch(profile)
+        merged, _ = t3cfg.merge_t3_settings(self._outage_settings(), patch)
+        cursor, _ = t3cfg.load_catalogs()
+        self.assertEqual(
+            t3cfg.cursor_plus_defects(merged, cursor),
+            [],
+            "merge must leave a Cursor Plus-clean state",
+        )
+
+    def test_apply_refuses_to_write_broken_cursor_state(self):
+        """Defense-in-depth: a corrupted catalog must never reach disk."""
+        profile = t3cfg.load_profile("laptop")
+        patch = t3cfg.build_t3_patch(profile)
+        broken_cursor = t3cfg.copy.deepcopy(t3cfg.load_catalogs()[0])
+        broken_cursor["models"]["composer-2.5"]["options"] = [{"id": "fast", "value": "true"}]
+        with tempfile.TemporaryDirectory() as temporary:
+            settings_path = Path(temporary) / "settings.json"
+            settings_path.write_text(json.dumps(self._outage_settings()), encoding="utf-8")
+            with mock.patch.object(
+                t3cfg, "load_catalogs", return_value=(broken_cursor, t3cfg.load_catalogs()[1])
+            ):
+                with self.assertRaises(SystemExit):
+                    t3cfg.apply_t3(profile, patch, dry_run=False, force=True, override=str(settings_path))
+            # Nothing was written: the file must still hold the outage state.
+            self.assertEqual(t3cfg.load_json(settings_path), self._outage_settings())
 
 
 class OmpTests(unittest.TestCase):

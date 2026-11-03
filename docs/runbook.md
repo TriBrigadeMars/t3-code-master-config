@@ -164,20 +164,26 @@ Restart T3/OpenCode after restoring.
 | `Local /v1/models ... connection refused` | Start `qwen-inference.service`; check `:1234` |
 | Laptop `/v1/models` fails | Check `qwen-laptop-gateway.service` and the desktop router |
 | `grok-4.7` still hidden | Apply `--only t3`; confirm `hiddenModels` in doctor |
-| Cursor still says `Model unavailable on Plus` | Check the favorite's `options`; re-apply `--only t3` |
+| Cursor still says `Model unavailable on Plus` | Run `./bin/t3cfg guard --profile <name>`; it names the exact favorite and option defect |
+| Cursor works, then breaks again later | T3 rewrote `settings.json` and dropped `options`; the timer's guard/apply loop repairs it on the next pass after T3 quits |
 | OpenCode hashes appear | Use `providers.qwen-local`, not built-in `lmstudio`; restart T3 |
 | OMP output cap looks wrong | Re-apply OMP; expect `maxTokens: 4096` |
 | OMP sees no models | Check `discovery: openai-models-list` and `/v1/models` |
 
 ## 6. Drift control
 
-T3 upgrades can rewrite `settings.json`; LM Studio upgrades can change ports and
-model IDs. After any upgrade:
+T3 upgrades can rewrite `settings.json` — and, as seen on `mars-laptop`,
+rewrites can drop the Cursor favorites' `options`. LM Studio upgrades can
+change ports and model IDs. After any upgrade:
 
 ```bash
+./bin/t3cfg guard --profile <name>
 ./bin/t3cfg plan --profile <name>
 ./bin/t3cfg doctor --profile <name>
 ```
+
+`guard` is the fast tripwire: read-only, no endpoint needed, and it is what the
+sync timer runs every pass.
 
 The generated `build/<profile>/manifest.json` records the files and hashes that
 would be written. `doctor` checks the live values, not just the rendered files.

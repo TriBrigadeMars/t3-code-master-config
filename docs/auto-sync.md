@@ -31,8 +31,11 @@ It:
 - applies OMP/OpenCode even while T3 is open
 - **defers T3 settings while T3 is running** (so it cannot fight the UI) and
   logs that it did so
+- runs the read-only Cursor Plus `guard` on every pass, **including when T3
+  settings are deferred while T3 is open** (so drift is always detected)
 - runs `t3cfg doctor`
-- with `--strict`, fails if T3 was deferred or the doctor reports a FAIL
+- with `--strict`, fails if T3 was deferred, guard sees Cursor Plus drift, or
+  the doctor reports a FAIL
 
 Useful variants:
 
@@ -149,9 +152,10 @@ Windows scheduled task for you.
 
 ## Current access blockers
 
-- `mars-laptop` is online but Tailscale SSH requires an interactive check. The
-  timer cannot be installed there until that check is approved or the commands
-  are run locally.
+- `mars-laptop` was online but its timer needed an interactive Tailscale SSH
+  check from the desktop. The timer and guard are installed on the laptop as of
+  2026-11-02 (installed locally). Verify with
+  `systemctl --user list-timers t3cfg-sync.timer` on the laptop.
 - `mars-server` is offline on the tailnet. Its profile is ready, but its timer
   cannot be installed until it is online.
 - The desktop has T3 Connect enabled, but `t3 environment list` currently says
@@ -164,7 +168,10 @@ Windows scheduled task for you.
 - Dirty tracked files abort the sync.
 - One sync at a time via `~/.config/t3-master/sync.lock`.
 - T3 settings are deferred while T3 is running; the Cursor fix is applied on the
-  next run after T3 is closed.
+  next run after T3 is closed. The read-only guard still detects drift during
+  that window and logs it.
+- `apply` refuses to write T3 settings whose merged Cursor favorites would
+  trigger `Model unavailable on Plus`.
 - The sync never starts or stops the Qwen router.
 - No secrets are placed in the repo or the log.
 - A broken render aborts before any live write.

@@ -4,8 +4,8 @@
   "hostname": "mars-laptop",
   "os": "linux",
   "tailscale_ip": "100.82.15.19",
-  "status": "documented",
-  "notes": "Live T3/OMP/OpenCode config still requires an interactive Tailscale SSH check. The endpoint is the desktop gateway.",
+  "status": "applied",
+  "notes": "Applied 2026-11-02 with t3cfg (T3 + OMP + OpenCode components). Run ./bin/t3cfg guard --profile laptop after any T3 rewrite of settings.json; T3 can drop favorites[].options while running. Endpoint is the desktop gateway.",
   "paths": {
     "t3_userdata": "~/.t3/userdata",
     "omp_agent": "~/.omp/agent",

@@ -1,0 +1,28 @@
+{
+  "favorites": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-terra"
+    },
+    {
+      "provider": "cursor",
+      "model": "composer-2.5"
+    },
+    {
+      "provider": "cursor",
+      "model": "grok-4.7"
+    },
+    {
+      "provider": "opencode",
+      "model": "opencode-go/glm-5.3-flash"
+    }
+  ],
+  "providerModelPreferences": {
+    "cursor": {
+      "hiddenModels": [
+        "grok-4.5",
+        "grok-4.7"
+      ]
+    }
+  }
+}

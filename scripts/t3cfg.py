@@ -549,6 +549,48 @@ def merge_opencode_config(config: dict, patch: dict) -> dict:
     return result
 
 
+CURSOR_PLUS_REMEDIATION = (
+    "Fix with: quit T3, then ./bin/t3cfg apply --profile <profile> --only t3; "
+    "verify with ./bin/t3cfg guard --profile <profile>"
+)
+
+
+def cursor_plus_defects(settings: dict, cursor: dict) -> list[str]:
+    """Detect every shape that makes Cursor Plus reject a model.
+
+    This is the 2026-11-02 mars-laptop outage class: a cursor favorite stored
+    without its fixed option values (or with wrong ones), or grok-4.7 left
+    hidden. Read-only; safe to run while T3 is open.
+    """
+    defects: list[str] = []
+    for item in settings.get("favorites", []):
+        if item.get("provider") != "cursor":
+            continue
+        model = item.get("model")
+        spec = cursor["models"].get(model)
+        if spec is None:
+            continue
+        expected = spec["options"]
+        actual = item.get("options")
+        if actual != expected:
+            defects.append(
+                f"cursor favorite {model} has options {actual!r}, "
+                f"expected {expected!r} (missing/wrong fixed options cause "
+                "'Model unavailable on Plus')"
+            )
+    hidden = (
+        settings.get("providerModelPreferences", {})
+        .get("cursor", {})
+        .get("hiddenModels", [])
+    )
+    if "grok-4.7" in hidden:
+        defects.append(
+            "grok-4.7 is in providerModelPreferences.cursor.hiddenModels; "
+            "it cannot be used while hidden"
+        )
+    return defects
+
+
 def omp_lmstudio_block(profile: dict) -> str:
     generated = build_omp_models(profile).splitlines()
     start = next(i for i, line in enumerate(generated) if line.strip() == "lm-studio:")
@@ -610,6 +652,17 @@ def apply_t3(profile: dict, patch: dict, dry_run: bool, force: bool, override: s
         )
     current = load_json(path)
     merged, changes = merge_t3_settings(current, patch)
+    merged_defects = cursor_plus_defects(merged, load_catalogs()[0])
+    if merged_defects:
+        detail = "\n  - ".join(merged_defects)
+        if dry_run:
+            print(f"[dry-run] WARNING: merged state would still break Cursor Plus:\n  - {detail}")
+        else:
+            raise SystemExit(
+                "refusing to write T3 settings: the merged state would still "
+                f"trigger 'Model unavailable on Plus':\n  - {detail}\n"
+                f"Catalog/applier invariant violated; {CURSOR_PLUS_REMEDIATION}"
+            )
     before = dump_json(current)
     after = dump_json(merged)
     if before != after:
@@ -940,6 +993,32 @@ def doctor(profile: dict, as_json: bool) -> int:
 # Plan / snapshot
 
 
+# ---------------------------------------------------------------------------
+# Guard (read-only, safe to run while T3 is open)
+
+
+def guard(profile: dict, override: str | None, as_json: bool) -> int:
+    cursor, _ = load_catalogs()
+    path = find_t3_settings(profile, override)
+    if not path.is_file():
+        defects = [f"T3 settings file missing: {path}"]
+    else:
+        try:
+            defects = cursor_plus_defects(load_json(path), cursor)
+        except (OSError, ValueError) as error:
+            defects = [f"cannot read {path}: {error}"]
+
+    if as_json:
+        print(json.dumps({"profile": profile["id"], "settings": str(path), "defects": defects}, indent=2))
+    elif defects:
+        for defect in defects:
+            print(f"GUARD FAIL — {defect}")
+        print(f"\n{CURSOR_PLUS_REMEDIATION}")
+    else:
+        print("GUARD PASS — Cursor Plus favorites carry their fixed options and grok-4.7 is visible.")
+    return 1 if defects else 0
+
+
 def plan(profile: dict) -> None:
     cursor, qwen = load_catalogs()
     settings_path = find_t3_settings(profile)
@@ -1068,6 +1147,7 @@ def main(argv: list[str] | None = None) -> int:
         ("render", "Render generated files without touching live configs"),
         ("plan", "Show current vs desired values without writing"),
         ("apply", "Apply selected components with backups"),
+        ("guard", "Read-only check that Cursor Plus favorites keep their fixed options"),
         ("doctor", "Verify files and the live endpoint"),
         ("snapshot", "Capture redacted local configs"),
     ]:
@@ -1079,9 +1159,10 @@ def main(argv: list[str] | None = None) -> int:
             command.add_argument("--only", default="all")
             command.add_argument("--dry-run", action="store_true")
             command.add_argument("--force", action="store_true")
-            command.add_argument("--t3-userdata", default=None)
-        if name == "doctor":
+        if name in {"doctor", "guard"}:
             command.add_argument("--json", action="store_true")
+        if name in {"apply", "guard"}:
+            command.add_argument("--t3-userdata", default=None)
         if name == "snapshot":
             command.add_argument("--out", default=None)
 
@@ -1104,6 +1185,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "plan":
         plan(profile)
         return 0
+
+    if args.command == "guard":
+        return guard(profile, args.t3_userdata, args.json)
 
     if args.command == "doctor":
         return doctor(profile, args.json)

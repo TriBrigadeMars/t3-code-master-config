@@ -10,7 +10,8 @@ Guarantees:
   * requires the main branch
   * one sync at a time via a lock file
   * T3 settings are deferred while T3 is running (unless --no-defer-t3)
-  * --strict fails if T3 was deferred or the doctor fails
+  * read-only Cursor Plus guard runs every time, even while T3 is open
+  * --strict fails if T3 was deferred, guard drift, or a doctor FAIL
 """
 from __future__ import annotations
 
@@ -114,6 +115,32 @@ def pull_main(strict_clean: bool, log_path: Path) -> int:
     return 0
 
 
+def guard_log(profile: dict, log_path: Path) -> int:
+    """Read-only Cursor Plus drift check; safe to run while T3 is open.
+
+    Returns 1 if the live settings are in the 'Model unavailable on Plus'
+    state, 0 otherwise. Never writes anything.
+    """
+    cursor, _ = t3cfg.load_catalogs()
+    settings_path = t3cfg.find_t3_settings(profile)
+    if not settings_path.is_file():
+        log(f"guard skip: no T3 settings at {settings_path}", log_path)
+        return 0
+    try:
+        settings = t3cfg.load_json(settings_path)
+        defects = t3cfg.cursor_plus_defects(settings, cursor)
+    except (OSError, ValueError) as error:
+        log(f"guard could not read {settings_path}: {error}", log_path)
+        return 0
+    if defects:
+        for defect in defects:
+            log(f"GUARD FAIL: {defect}", log_path)
+        log("Fix with: quit T3, then ./bin/t3cfg apply --profile {} --only t3".format(profile["id"]), log_path)
+        return 1
+    log("guard: Cursor Plus favorites carry their fixed options", log_path)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", required=True, choices=sorted(p.stem for p in PROFILES.glob("*.json")))
@@ -167,8 +194,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if not args.apply:
             t3cfg.plan(profile)
-            if args.strict and deferred_t3:
-                log("--strict: deferred T3 settings count as a failure", log_path)
+            guard_code = guard_log(profile, log_path)
+            if args.strict and (deferred_t3 or guard_code != 0):
+                log("--strict: deferred T3 settings or Cursor Plus drift count as a failure", log_path)
                 return 1
             return 0
 
@@ -202,6 +230,10 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.strict and deferred_t3:
             log("--strict: deferred T3 settings count as a failure", log_path)
+            return 1
+        guard_code = guard_log(profile, log_path)
+        if args.strict and guard_code != 0:
+            log("--strict: guard detected Cursor Plus drift after apply", log_path)
             return 1
         if args.no_doctor:
             return 0

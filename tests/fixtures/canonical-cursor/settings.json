@@ -1,0 +1,39 @@
+{
+  "favorites": [
+    {
+      "provider": "codex",
+      "model": "gpt-6.1-terra"
+    },
+    {
+      "provider": "cursor",
+      "model": "composer-2.5",
+      "options": [
+        { "id": "fastMode", "value": "false" }
+      ]
+    },
+    {
+      "provider": "cursor",
+      "model": "grok-4.6",
+      "options": [
+        { "id": "effort", "value": "medium" },
+        { "id": "fastMode", "value": "false" }
+      ]
+    },
+    {
+      "provider": "cursor",
+      "model": "grok-4.7",
+      "options": [
+        { "id": "contextWindow", "value": "256k" },
+        { "id": "fastMode", "value": "false" },
+        { "id": "reasoning_effort", "value": "medium" }
+      ]
+    }
+  ],
+  "providerModelPreferences": {
+    "cursor": {
+      "hiddenModels": [
+        "grok-4.5"
+      ]
+    }
+  }
+}

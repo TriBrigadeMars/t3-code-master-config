@@ -25,3 +25,10 @@ jobs:
           ./bin/t3cfg render --profile desktop --out /tmp/t3cfg-desktop
           ./bin/t3cfg render --profile laptop --out /tmp/t3cfg-laptop
           ./bin/t3cfg render --profile server --out /tmp/t3cfg-server
+      - name: Cursor Plus guard fixtures
+        run: |
+          if ./bin/t3cfg guard --profile laptop --t3-userdata tests/fixtures/outage-laptop; then
+            echo "ERROR: guard must fail on the outage fixture" >&2
+            exit 1
+          fi
+          ./bin/t3cfg guard --profile laptop --t3-userdata tests/fixtures/canonical-cursor
