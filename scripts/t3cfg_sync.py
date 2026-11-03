@@ -121,6 +121,8 @@ def guard_log(profile: dict, log_path: Path) -> int:
     Returns 1 if the live settings are in the 'Model unavailable on Plus'
     state, 0 otherwise. Never writes anything.
     """
+    import t3cfg  # noqa: PLC0415 - resolved after the pull inside main()
+
     cursor, _ = t3cfg.load_catalogs()
     settings_path = t3cfg.find_t3_settings(profile)
     if not settings_path.is_file():
