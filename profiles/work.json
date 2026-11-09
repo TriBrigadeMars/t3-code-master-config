@@ -1,10 +1,10 @@
 {
-  "id": "server",
-  "label": "Mars Server (Windows / CachyOS dual boot)",
-  "hostname": "mars-server",
+  "id": "work",
+  "label": "AMC Work Laptop (Windows 11)",
+  "hostname": "amc-5rcsfw3",
   "os": "windows",
-  "tailscale_ip": "100.111.54.87",
-  "status": "offline",
+  "tailscale_ip": "100.100.56.105",
+  "status": "documented",
   "notes": "Provisional until the machine is online. Defaults to the desktop Qwen gateway. If this machine runs its own router, set qwen.role=server and qwen.endpoint=http://127.0.0.1:1234/v1.",
   "paths": {
     "t3_userdata": "%USERPROFILE%\\.t3\\userdata",

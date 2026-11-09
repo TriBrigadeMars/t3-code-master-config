@@ -81,13 +81,13 @@ For the laptop, the repository path may be under `/home/mars`; the unit uses
 
 ## Windows: Task Scheduler
 
-On `mars-server`, run PowerShell as the user who owns the repo:
+On the AMC work laptop (`amc-5rcsfw3`), run PowerShell as the user who owns the repo:
 
 ```powershell
 $repo = "$env:USERPROFILE\t3-code-master-config"
 $action = New-ScheduledTaskAction `
   -Execute "python" `
-  -Argument "`"$repo\scripts\t3cfg_sync.py`" --profile server --apply --strict" `
+  -Argument "`"$repo\scripts\t3cfg_sync.py`" --profile work --apply --strict" `
   -WorkingDirectory $repo
 $trigger = New-ScheduledTaskTrigger -AtStartup
 $repeat = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(5) `
@@ -104,7 +104,7 @@ The `t3cfg-sync.cmd` wrapper is available if you prefer the Task Scheduler
 “Start a program” UI:
 
 ```
-C:\Users\<you>\t3-code-master-config\bin\t3cfg-sync.cmd --profile server --apply --strict
+C:\Users\<you>\t3-code-master-config\bin\t3cfg-sync.cmd --profile work --apply --strict
 ```
 
 ## “Require” at T3 launch
@@ -156,7 +156,7 @@ Windows scheduled task for you.
   check from the desktop. The timer and guard are installed on the laptop as of
   2026-11-02 (installed locally). Verify with
   `systemctl --user list-timers t3cfg-sync.timer` on the laptop.
-- `mars-server` is offline on the tailnet. Its profile is ready, but its timer
+- The AMC work laptop (`amc-5rcsfw3`) is offline on the tailnet. Its `work` profile is ready, but its timer
   cannot be installed until it is online.
 - The desktop has T3 Connect enabled, but `t3 environment list` currently says
   `No linked environments`. Use `t3 environment link` above, or run the

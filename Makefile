@@ -1,4 +1,4 @@
-.PHONY: test render plan desktop laptop server
+.PHONY: test render plan desktop laptop work
 
 test:
 	python3 -m unittest discover -s tests -v
@@ -6,7 +6,7 @@ test:
 render:
 	./bin/t3cfg render --profile desktop
 	./bin/t3cfg render --profile laptop
-	./bin/t3cfg render --profile server
+	./bin/t3cfg render --profile work
 
 desktop:
 	./bin/t3cfg plan --profile desktop
@@ -14,5 +14,5 @@ desktop:
 laptop:
 	./bin/t3cfg plan --profile laptop
 
-server:
-	./bin/t3cfg plan --profile server
+work:
+	./bin/t3cfg plan --profile work

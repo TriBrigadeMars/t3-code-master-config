@@ -24,7 +24,7 @@ jobs:
         run: |
           ./bin/t3cfg render --profile desktop --out /tmp/t3cfg-desktop
           ./bin/t3cfg render --profile laptop --out /tmp/t3cfg-laptop
-          ./bin/t3cfg render --profile server --out /tmp/t3cfg-server
+          ./bin/t3cfg render --profile work --out /tmp/t3cfg-work
       - name: Cursor Plus guard fixtures
         run: |
           if ./bin/t3cfg guard --profile laptop --t3-userdata tests/fixtures/outage-laptop; then

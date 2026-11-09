@@ -311,10 +311,10 @@ class ProfileTests(unittest.TestCase):
     def test_endpoints(self):
         desktop = t3cfg.load_profile("desktop")
         laptop = t3cfg.load_profile("laptop")
-        server = t3cfg.load_profile("server")
+        work = t3cfg.load_profile("work")
         self.assertEqual(desktop["qwen"]["endpoint"], "http://127.0.0.1:1234/v1")
         self.assertEqual(laptop["qwen"]["endpoint"], "http://100.95.87.91:1235/v1")
-        self.assertEqual(server["qwen"]["endpoint"], "http://100.95.87.91:1235/v1")
+        self.assertEqual(work["qwen"]["endpoint"], "http://100.95.87.91:1235/v1")
 
 
 if __name__ == "__main__":

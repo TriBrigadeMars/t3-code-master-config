@@ -115,19 +115,19 @@ The desktop cannot currently apply the laptop profile because the tailnet SSH
 policy requires an interactive check. Run the commands locally on the laptop, or
 approve the Tailscale check first. This is an access issue, not a config issue.
 
-## 3. Server (`mars-server`)
+## 3. AMC work laptop (`work`)
 
-The server is offline. Its profile defaults to the desktop gateway.
+The work laptop is offline. Its profile defaults to the desktop gateway.
 
 When it is online:
 
 ```bash
-./bin/t3cfg plan --profile server
-./bin/t3cfg apply --profile server --only t3,omp,opencode
-./bin/t3cfg doctor --profile server
+./bin/t3cfg plan --profile work
+./bin/t3cfg apply --profile work --only t3,omp,opencode
+./bin/t3cfg doctor --profile work
 ```
 
-If the server is booted into CachyOS, copy `profiles/server.json` to a Linux
+If the machine is booted into Linux, copy `profiles/work.json` to a Linux
 profile and replace `%USERPROFILE%`/`%APPDATA%` with `~` paths.
 
 If the server should own its own router instead of using the desktop:

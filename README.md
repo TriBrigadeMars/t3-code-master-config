@@ -9,7 +9,7 @@ small, machine-specific files from three profiles and can merge them into a live
 machine with a backup and a dry-run first.
 
 > **Status:** desktop audit complete; laptop topology documented but its live T3
-> config still needs a Tailscale SSH check; `mars-server` is offline. See
+> config still needs a Tailscale SSH check; `amc-5rcsfw3` is offline. See
 > [`PROPOSAL.md`](PROPOSAL.md) for the evidence and the rollout plan.
 
 ---
@@ -81,7 +81,7 @@ means two processes competing for the same 24 GB Arc Pro B60. Pick one owner.
 |---|---|---|---|
 | `mars-desktop-cachy` | `desktop` | `http://127.0.0.1:1234/v1` | Runs the tuned router and the Tailscale gateway |
 | `mars-laptop` | `laptop` | `http://100.95.87.91:1235/v1` | Uses the desktop's router over Tailscale |
-| `mars-server` | `server` | `http://100.95.87.91:1235/v1` | Uses the desktop gateway when online; can switch to a local router |
+| `amc-5rcsfw3` (AMC work laptop) | `work` | `http://100.95.87.91:1235/v1` | Uses the desktop gateway when online; can switch to a local router |
 
 ### Canonical model IDs
 
@@ -164,7 +164,7 @@ running unless `--force` is passed. Prefer quitting T3.
 ./bin/t3cfg apply --profile laptop --only t3,omp,opencode
 
 # server: when it is online again
-./bin/t3cfg plan  --profile server
+./bin/t3cfg plan  --profile work
 ```
 
 The laptop and server profiles are rendered and tested in CI, but they cannot be

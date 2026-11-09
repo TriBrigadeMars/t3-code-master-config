@@ -21,7 +21,7 @@ right; they only point at one.
 |---|---|---|
 | `mars-desktop-cachy` | `http://127.0.0.1:1234/v1` | Router owner |
 | `mars-laptop` | `http://100.95.87.91:1235/v1` | Gateway client |
-| `mars-server` | `http://100.95.87.91:1235/v1` | Gateway client (provisional) |
+| `amc-5rcsfw3` (work) | `http://100.95.87.91:1235/v1` | Gateway client (provisional) |
 
 The desktop gateway listens only on the desktop Tailscale IP and allows only
 the laptop and desktop peers:
