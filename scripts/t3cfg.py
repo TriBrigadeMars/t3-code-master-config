@@ -596,12 +596,12 @@ def apply_t3(profile: dict, patch: dict, dry_run: bool, force: bool, override: s
             )
     before = dump_json(current)
     after = dump_json(merged)
-    if before != after:
-        print(unified_diff(before, after, str(path)))
-        for change in changes:
-            print(f"  - {change}")
-    else:
+    if before == after:
         print(f"T3 settings already match {profile['id']}.")
+        return
+    print(unified_diff(before, after, str(path)))
+    for change in changes:
+        print(f"  - {change}")
     if dry_run:
         print(f"[dry-run] would write {path}")
         return
@@ -670,10 +670,10 @@ def apply_opencode(profile: dict, patch: dict, dry_run: bool) -> None:
     merged = merge_opencode_config(current, patch)
     before = dump_json(current)
     after = dump_json(merged)
-    if before != after:
-        print(unified_diff(before, after, str(path)))
-    else:
+    if before == after:
         print("OpenCode provider already matches.")
+        return
+    print(unified_diff(before, after, str(path)))
     if dry_run:
         print(f"[dry-run] would write {path}")
         return

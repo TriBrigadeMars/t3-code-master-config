@@ -258,6 +258,45 @@ class OpenCodeTests(unittest.TestCase):
         self.assertEqual(merged["mcp"], {"servers": {}})
 
 
+class IdempotentApplyTests(unittest.TestCase):
+    """The sync timer applies every 15 minutes; a no-op must leave no backup behind."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.dir = Path(tmp.name)
+        self.profile = json.loads(json.dumps(t3cfg.load_profile("laptop")))
+
+    def backups(self):
+        return [p.name for p in self.dir.iterdir() if ".bak-t3cfg-" in p.name]
+
+    def test_unchanged_opencode_config_is_not_backed_up_or_rewritten(self):
+        path = self.dir / "opencode.json"
+        self.profile["paths"]["opencode"] = str(path)
+        patch = t3cfg.build_opencode_patch(self.profile)
+        path.write_text(t3cfg.dump_json(t3cfg.merge_opencode_config({}, patch)), encoding="utf-8")
+        with mock.patch("sys.stdout"):
+            t3cfg.apply_opencode(self.profile, patch, dry_run=False)
+        self.assertEqual(self.backups(), [])
+
+    def test_unchanged_t3_settings_are_not_backed_up_or_rewritten(self):
+        patch = t3cfg.build_t3_patch(self.profile)
+        canonical = t3cfg.load_json(ROOT / "tests/fixtures/canonical-cursor/settings.json")
+        merged, _ = t3cfg.merge_t3_settings(canonical, patch)
+        (self.dir / "settings.json").write_text(t3cfg.dump_json(merged), encoding="utf-8")
+        with mock.patch.object(t3cfg, "t3_running", return_value=False), mock.patch("sys.stdout"):
+            t3cfg.apply_t3(self.profile, patch, dry_run=False, force=False, override=str(self.dir))
+        self.assertEqual(self.backups(), [])
+
+    def test_changed_opencode_config_is_still_backed_up(self):
+        path = self.dir / "opencode.json"
+        self.profile["paths"]["opencode"] = str(path)
+        path.write_text("{}\n", encoding="utf-8")
+        with mock.patch("sys.stdout"):
+            t3cfg.apply_opencode(self.profile, t3cfg.build_opencode_patch(self.profile), dry_run=False)
+        self.assertEqual(len(self.backups()), 1)
+
+
 class RenderTests(unittest.TestCase):
     def test_all_profiles_render(self):
         with tempfile.TemporaryDirectory() as temporary:
