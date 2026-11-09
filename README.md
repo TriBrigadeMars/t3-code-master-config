@@ -275,3 +275,5 @@ Run it on the machine you are checking.
   repository policy.
 - [`docs/auto-sync.md`](docs/auto-sync.md) — automatic pull/apply on the
   laptop and work laptop, including the one-time bootstrap.
+- [`docs/nightly-session.md`](docs/nightly-session.md) — the nightly desktop
+  wake (21:58 from the laptop) and guarded 07:00 shutdown for unattended runs.
