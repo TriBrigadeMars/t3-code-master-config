@@ -172,7 +172,7 @@ Windows scheduled task for you.
   that window and logs it.
 - `apply` refuses to write T3 settings whose merged Cursor favorites would
   trigger `Model unavailable on Plus`.
-- The sync never starts or stops the Qwen router.
+- The sync never loads or unloads models; Bionic does that on request.
 - No secrets are placed in the repo or the log.
 - A broken render aborts before any live write.
 

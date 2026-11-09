@@ -1,181 +1,104 @@
-# Local inference: one endpoint, three clients
+# Local inference: one engine, three clients
+
+LM Studio Bionic on the desktop is the only local model engine. Every machine's
+OMP, OpenCode and T3 point at Bionic's OpenAI-compatible API. Nothing else on
+any machine loads local models for these clients.
+
+The custom `llama.cpp` router (`qwen-inference.service`) and its Tailscale
+gateway (`qwen-laptop-gateway.service`) were removed on 2026-11-08. They ran a
+second engine on the same 24 GB GPU, which pushed Bionic's models out of VRAM.
 
 ## Roles
 
-| Component | What it is | What it is not |
+| Component | What it is |
+|---|---|
+| **LM Studio Bionic** (desktop) | The model engine and the only server |
+| **Oh My Pi (OMP)** | Agent client |
+| **OpenCode** | Agent client |
+| **T3 Code Nightly** | Orchestrator and client |
+
+## Endpoint
+
+Every machine uses the same URL:
+
+```
+http://100.95.87.91:8088/v1
+```
+
+Bionic's server binds to the desktop's Tailscale address only (Bionic
+**Developer → Server settings**: port `8088`, network interface `100.95.87.91`,
+just-in-time loading on). It does not listen on `127.0.0.1`, so desktop clients
+use the Tailscale address too. Any device on the tailnet can reach it; there is
+no per-peer allow-list.
+
+| Machine | Profile | Endpoint |
 |---|---|---|
-| **LM Studio Bionic** | Desktop GUI and model manager; optional native API on `:8088` | Not the canonical client endpoint |
-| **Tuned Qwen router** | Custom `llama.cpp` `build-intelfa` server with DFlash2 | Not an LM Studio feature |
-| **Tailscale gateway** | Desktop bridge on `100.95.87.91:1235` | Not a second model server |
-| **Oh My Pi (OMP)** | Agent client | Not a server |
-| **OpenCode** | Agent client | Not a server |
-| **T3 Code Nightly** | Orchestrator/client | Not a model server |
+| `mars-desktop-cachy` | `desktop` | `http://100.95.87.91:8088/v1` |
+| `mars-laptop` | `laptop` | `http://100.95.87.91:8088/v1` |
+| `amc-5rcsfw3` (AMC work laptop) | `work` | `http://100.95.87.91:8088/v1` |
 
-The router and LM Studio are the two possible servers. OMP, OpenCode, and T3 are
-clients. Do not treat OMP/OpenCode as local inference providers in their own
-right; they only point at one.
+## Models
 
-## Endpoints
+The ids are the ones Bionic's `/v1/models` reports. Two of them are snapshot
+hashes, because that is how Bionic names files it found in the Hugging Face cache.
 
-| Machine | Canonical endpoint | Role |
-|---|---|---|
-| `mars-desktop-cachy` | `http://127.0.0.1:1234/v1` | Router owner |
-| `mars-laptop` | `http://100.95.87.91:1235/v1` | Gateway client |
-| `amc-5rcsfw3` (work) | `http://100.95.87.91:1235/v1` | Gateway client (provisional) |
+| Variant | Bionic model id | File | Vision |
+|---|---|---|---|
+| `q4` (default) | `qwen/qwen3.8-27b` | LM Studio Community Q4_K_M | yes |
+| `swift` | `14bfe4b42be4a925d98816db830155f476c605e7` | Swift 1.5 Qwen3.8 27B Q4_K_S | yes |
+| `orcarouter` | `58ebd123013160600229eda180b5b17f3fb7af9d` | Qwen3.8 27B Uncensored OrcaRouter Q4_K_M | no |
 
-The desktop gateway listens only on the desktop Tailscale IP and allows only
-the laptop and desktop peers:
+Clients use a `32768` context window and a `4096` output cap. Bionic loads a
+model with its own saved default context (`qwen/qwen3.8-27b` loaded at `40000`
+on 2026-11-08), so 32,768 leaves headroom. Raise `context_window` in the
+profiles only after checking the loaded context with `lms ps`.
 
-- `100.82.15.19` (laptop)
-- `100.95.87.91` (desktop)
+## GPU sharing
 
-If the laptop cannot reach `:1235`, check the tailnet ACL for TCP 1235.
+Bionic manages the GPU for everything:
 
-## Canonical model IDs
+- A request for a model that is not loaded loads it on demand.
+- Loading an on-demand model unloads the previous on-demand model
+  (`unloadPreviousJITModelOnLoad`).
+- An idle on-demand model unloads after Bionic's TTL (one hour).
+- A request for a model that is already loaded, for example one you opened in a
+  Bionic chat, reuses that instance.
 
-| API model ID | Weights | Notes |
-|---|---|---|
-| `qwen/qwen3.8-27b` | LM Studio Community Q4_K_M | Default |
-| `qwen/qwen3.8-27b-unsloth` | Unsloth UD-IQ4_XS | + mmproj-F16 |
-| `qwen/qwen3.8-27b-uncensored` | OrcaRouter Uncensored Q4_K_M | Local GGUF, not OpenRouter |
+Other apps that load models on their own, such as Unsloth Studio, are outside
+Bionic's control and can still exhaust VRAM. Unload them before long local runs.
 
-All three are vision-capable, served on one router, and use:
+## OpenCode and OMP details
 
-- `32768` context
-- `4096` max output
-- `medium` default thinking effort
-- one loaded model at a time (`models_max: 1`)
-
-## The OpenCode trap
-
-OpenCode's built-in `lmstudio` provider is defined as:
-
-```
-origin:    http://127.0.0.1:1234
-discovery: GET /api/v1/models
-```
-
-That is **LM Studio's native API**. The tuned router is a `llama.cpp` server and
-exposes the OpenAI-compatible **`/v1/models`**. The built-in provider therefore
-cannot discover the router; it sees LM Studio hashes when LM Studio is on
-`:1234`, and nothing when the router is the owner.
-
-The repo adds a separate provider:
-
-```json
-"qwen-local": {
-  "name": "Local Qwen (tuned router)",
-  "package": "@opencode/ai/providers/openai-compatible",
-  "settings": { "baseURL": "http://127.0.0.1:1234/v1" },
-  "models": { "qwen/qwen3.8-27b": { "...": "..." } }
-}
-```
-
-This is the same provider package already used by the working `cliproxy` and
-`mimo` blocks in `opencode.json`.
-
-## The OMP discovery trap
-
-OMP's `discovery.type: lm-studio` targets LM Studio's native API too. The router
-serves `/v1/models`, so the generated OMP block uses:
-
-```yaml
-discovery:
-  type: openai-models-list
-```
-
-Explicit model definitions remain authoritative; discovery is only a consistency
-check.
-
-## GPU ownership
-
-The Intel Arc Pro B60 has 24 GB VRAM and the host has 32 GB RAM. Run one large
-model server, not two.
-
-### Recommended: router owns `:1234`
-
-1. Unload LM Studio's loaded model, or quit LM Studio.
-2. Start the router:
-   ```bash
-   systemctl --user start qwen-inference.service
-   ```
-3. Start the gateway:
-   ```bash
-   systemctl --user start qwen-laptop-gateway.service
-   ```
-4. Verify:
-   ```bash
-   curl -fsS http://127.0.0.1:1234/v1/models | jq -r '.data[].id'
-   ```
-5. Start T3/OMP/OpenCode.
-
-The router loads the selected variant on demand. The first request can take
-longer while the 27B model loads.
-
-### Alternative: LM Studio owns `:8088`
-
-Point every client at `http://127.0.0.1:8088/v1` instead. This loses the tuned
-Intel flash-attention / DFlash2 stack and the clean model IDs. The repo does not
-recommend this.
-
-## The current failure mode
-
-At audit time:
-
-- `qwen-inference.service` was inactive/dead.
-- `:1234` had no listener.
-- LM Studio Bionic was running; `lms server status` reported `:8088`, and its
-  child `llama-server` was on `:39397` serving a Qwen3.6-35B model.
-- `qwen-laptop-gateway.service` was active, forwarding to the dead `:1234`.
-- T3/OMP/OpenCode all pointed at `:1234`.
-
-So the desktop clients had no server, and the laptop gateway had no upstream.
-The fix is to start the owner and stop the competing model server, not to add
-another client config.
+- OpenCode uses the `qwen-local` provider (`@opencode/ai/providers/openai-compatible`)
+  with the Bionic URL. Its built-in `lmstudio` provider assumes `127.0.0.1:1234`
+  and is not used; T3 favorites starting with `lmstudio/` are removed on apply.
+- OMP's `lm-studio` provider uses `discovery.type: openai-models-list`, which
+  reads Bionic's `/v1/models`.
 
 ## Diagnostic commands
 
 ```bash
-# What is listening?
-ss -ltnp | grep -E ':(1234|1235|8088|39397)\b'
+# Is Bionic serving, and which models does it advertise?
+curl -fsS http://100.95.87.91:8088/v1/models | jq -r '.data[].id'
 
-# Is the router healthy?
-curl -fsS http://127.0.0.1:1234/health
-curl -fsS http://127.0.0.1:1234/v1/models | jq -r '.data[].id'
+# What is loaded, with which context, and when does it unload?
+lms ps
+curl -fsS http://100.95.87.91:8088/api/v1/models | jq '.models[] | select(.loaded_instances != []) | {key, loaded_instances}'
 
-# Is the gateway healthy?
-curl -fsS http://100.95.87.91:1235/health
-curl -fsS http://100.95.87.91:1235/v1/models | jq -r '.data[].id'
+# Which of this machine's variants does Bionic advertise?
+omp-qwen --check
 
-# What is LM Studio doing?
-~/.lmstudio/bin/lms server status
-~/.lmstudio/bin/lms ps
-
-# What are the systemd units doing?
-systemctl --user status qwen-inference.service
-systemctl --user status qwen-laptop-gateway.service
-journalctl --user -u qwen-inference.service -n 50 --no-pager
+# Full check of this machine's files plus the endpoint
+./bin/t3cfg doctor --profile <desktop|laptop|work>
 ```
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `Connection refused` on `:1234` | Router not running | Start `qwen-inference.service` |
-| `502` from `:1235` | Gateway is up, upstream dead | Start the router; gateway preflights upstream |
-| T3 `opencode` shows `lmstudio/<hash>` | Built-in LM Studio provider is being used | Use `qwen-local/qwen/...`; apply the OpenCode provider |
-| T3 `pi` shows old variants | OMP `models.yml` not updated | Apply the OMP component |
-| OMP asks for 32K output | `maxTokens` still 32768 | Apply the OMP component (sets 4096) |
-| CUDA/Vulkan OOM | LM Studio and router both loaded a model | Unload one; use one owner |
-| Laptop cannot reach `:1235` | Tailscale ACL or desktop service down | Check tailnet ACL TCP 1235 and `qwen-laptop-gateway.service` |
-| Router exits cleanly and stays down | Old unit used `Restart=on-failure` | The repo unit uses `Restart=always` |
-
-## Startup order
-
-1. Free the GPU (unload LM Studio's model or quit LM Studio).
-2. `qwen-inference.service` (`:1234`).
-3. `qwen-laptop-gateway.service` (`:1235`).
-4. T3/OMP/OpenCode.
-
-Do not start step 2 while LM Studio has a 27B/35B model resident unless you
-intend to unload it.
+| `Connection refused` on `:8088` | Bionic is not running, or Tailscale is down on the desktop | Start Bionic (it autostarts at login); check `tailscale status` |
+| First request takes minutes | Bionic is loading a 17 GB model | Wait; later requests are fast until the TTL unloads it |
+| `omp-qwen --check` shows `advertised: false` | Model id changed in Bionic | Update `catalog/qwen-local.json` from `/v1/models` |
+| T3 shows `lm-studio/qwen/qwen3.8-27b-unsloth` or `-uncensored` | Old favorites from the removed router | Quit and reopen T3 so the launch apply removes them |
+| VRAM spill or very slow prompts | Another app (e.g. Unsloth Studio) holds a model | Unload it in that app |
+| Context-length error from a client | Bionic loaded the model with less context than the client assumes | Check `lms ps`; lower `context_window` or raise Bionic's default |

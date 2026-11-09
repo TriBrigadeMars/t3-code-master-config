@@ -5,22 +5,17 @@
   "os": "linux",
   "tailscale_ip": "100.82.15.19",
   "status": "applied",
-  "notes": "Applied 2026-11-02 with t3cfg (T3 + OMP + OpenCode components). Run ./bin/t3cfg guard --profile laptop after any T3 rewrite of settings.json; T3 can drop favorites[].options while running. Endpoint is the desktop gateway.",
+  "notes": "Applied 2026-11-02 with t3cfg (T3 + OMP + OpenCode components). Run ./bin/t3cfg guard --profile laptop after any T3 rewrite of settings.json; T3 can drop favorites[].options while running. Local models come from LM Studio Bionic on the desktop over Tailscale.",
   "paths": {
     "t3_userdata": "~/.t3/userdata",
     "omp_agent": "~/.omp/agent",
     "omp_profile": "~/.omp/profiles/qwen/agent",
     "opencode": "~/.config/opencode/opencode.json",
-    "qwen_config": "~/.config/qwen-inference",
-    "qwen_share": "~/.local/share/qwen-inference",
     "state": "~/.config/t3-master",
     "bin": "~/.local/bin"
   },
   "qwen": {
-    "role": "client",
-    "endpoint": "http://100.95.87.91:1235/v1",
-    "health": "http://100.95.87.91:1235/health",
-    "gateway": null,
+    "endpoint": "http://100.95.87.91:8088/v1",
     "context_window": 32768,
     "max_output_tokens": 4096,
     "default_effort": "medium"

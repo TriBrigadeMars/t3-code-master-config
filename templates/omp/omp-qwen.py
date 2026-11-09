@@ -20,7 +20,7 @@ ENV_FILE = Path(
 )
 VARIANTS = {
     "q4": "OMP_QWEN_MODEL_Q4",
-    "unsloth": "OMP_QWEN_MODEL_UNSLOTH",
+    "swift": "OMP_QWEN_MODEL_SWIFT",
     "orcarouter": "OMP_QWEN_MODEL_ORCAROUTER",
 }
 CONTROLLED = {
@@ -71,8 +71,6 @@ def inventory(env: dict[str, str]) -> dict[str, dict[str, object]]:
         for row in result.values():
             model = served.get(str(row["model"]))
             row["advertised"] = model is not None
-            if model:
-                row["status"] = model.get("status", {})
     except (OSError, ValueError, KeyError, urllib.error.URLError) as error:
         for row in result.values():
             row["error"] = str(error)
@@ -82,7 +80,7 @@ def inventory(env: dict[str, str]) -> dict[str, dict[str, object]]:
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Standalone local Qwen OMP. Remaining arguments go to OMP.",
-        epilog='Examples: omp-qwen --goal "Finish the plan"; omp-qwen --variant unsloth; omp-qwen --check',
+        epilog='Examples: omp-qwen --goal "Finish the plan"; omp-qwen --variant swift; omp-qwen --check',
     )
     parser.add_argument("--variant", choices=VARIANTS, default="q4")
     parser.add_argument("--check", action="store_true", help="Inspect all local aliases without inference")

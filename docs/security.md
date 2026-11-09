@@ -47,17 +47,14 @@ that file into the repo.
 
 Redaction is best-effort. Review a snapshot before sharing it.
 
-## Gateway exposure
+## Bionic exposure
 
-The desktop gateway binds only to the Tailscale IP and checks the peer IP against
-an allow-list:
-
-- `100.82.15.19` (laptop)
-- `100.95.87.91` (desktop)
-
-It is not a public endpoint. If the tailnet IPs change, update
-`profiles/desktop.json` and re-apply the `qwen` component. Ensure the tailnet ACL
-allows TCP 1235 only from the laptop.
+LM Studio Bionic's server binds to the desktop's Tailscale address
+(`100.95.87.91:8088`) and has authentication off. It is not a public endpoint, but
+every device on the tailnet can use it. To narrow that, either restrict TCP 8088
+in the tailnet ACL to the three T3 machines, or turn on **Require authentication**
+in Bionic's server settings and add the key to each client's provider config
+(outside this repo).
 
 ## File permissions
 
@@ -67,7 +64,6 @@ The applier writes:
 - OMP `models.yml` as `0600`
 - OpenCode `opencode.json` as `0600`
 - the `omp-qwen` launcher as `0755`
-- systemd units as `0644`
 
 Backups inherit the original file mode via `shutil.copy2`.
 

@@ -5,22 +5,17 @@
   "os": "windows",
   "tailscale_ip": "100.100.56.105",
   "status": "documented",
-  "notes": "Provisional until the machine is online. Defaults to the desktop Qwen gateway. If this machine runs its own router, set qwen.role=server and qwen.endpoint=http://127.0.0.1:1234/v1.",
+  "notes": "Provisional until the machine is online. Local models come from LM Studio Bionic on the desktop over Tailscale.",
   "paths": {
     "t3_userdata": "%USERPROFILE%\\.t3\\userdata",
     "omp_agent": "%USERPROFILE%\\.omp\\agent",
     "omp_profile": "%USERPROFILE%\\.omp\\profiles\\qwen\\agent",
     "opencode": "%APPDATA%\\opencode\\opencode.json",
-    "qwen_config": "%USERPROFILE%\\.config\\qwen-inference",
-    "qwen_share": "%USERPROFILE%\\.local\\share\\qwen-inference",
     "state": "%USERPROFILE%\\.config\\t3-master",
     "bin": "%USERPROFILE%\\.local\\bin"
   },
   "qwen": {
-    "role": "client",
-    "endpoint": "http://100.95.87.91:1235/v1",
-    "health": "http://100.95.87.91:1235/health",
-    "gateway": null,
+    "endpoint": "http://100.95.87.91:8088/v1",
     "context_window": 32768,
     "max_output_tokens": 4096,
     "default_effort": "medium"

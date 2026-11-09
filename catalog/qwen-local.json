@@ -1,4 +1,5 @@
 {
+  "engine": "LM Studio Bionic on the desktop (mars-desktop-cachy). Bionic loads models on request, unloads the previous on-request model when it loads another, and unloads idle ones after its TTL. Model ids are the ones Bionic's /v1/models reports.",
   "canonical": "qwen/qwen3.8-27b",
   "context_window": 32768,
   "max_output_tokens": 4096,
@@ -10,27 +11,28 @@
   "models": [
     {
       "id": "qwen/qwen3.8-27b",
-      "name": "Qwen3.8 27B · Local Q4_K_M",
+      "name": "Qwen3.8 27B \u00b7 Bionic Q4_K_M",
       "variant": "q4",
-      "opencode_favorite": true,
-      "weights": "~/.cache/huggingface/hub/lmstudio-community/Qwen3.8-27B-GGUF/Qwen3.8-27B-Q4_K_M.gguf",
-      "mmproj": "~/.cache/huggingface/hub/lmstudio-community/Qwen3.8-27B-GGUF/mmproj-Qwen3.8-27B-BF16.gguf"
+      "vision": true,
+      "opencode_favorite": true
     },
     {
-      "id": "qwen/qwen3.8-27b-unsloth",
-      "name": "Qwen3.8 27B · Local Unsloth UD-IQ4_XS",
-      "variant": "unsloth",
-      "opencode_favorite": false,
-      "weights": "~/.cache/huggingface/hub/models--unsloth--Qwen3.8-27B-GGUF/snapshots/4ca720788d1e01f1bff70c033e0d0028fd02e502/Qwen3.8-27B-UD-IQ4_XS.gguf",
-      "mmproj": "~/.cache/huggingface/hub/models--unsloth--Qwen3.8-27B-GGUF/snapshots/4ca720788d1e01f1bff70c033e0d0028fd02e502/mmproj-F16.gguf"
+      "id": "14bfe4b42be4a925d98816db830155f476c605e7",
+      "name": "Swift 1.5 Qwen3.8 27B \u00b7 Bionic Q4_K_S",
+      "variant": "swift",
+      "vision": true,
+      "opencode_favorite": false
     },
     {
-      "id": "qwen/qwen3.8-27b-uncensored",
-      "name": "Qwen3.8 27B · Local OrcaRouter Uncensored Q4_K_M",
+      "id": "58ebd123013160600229eda180b5b17f3fb7af9d",
+      "name": "Qwen3.8 27B Uncensored OrcaRouter \u00b7 Bionic Q4_K_M",
       "variant": "orcarouter",
-      "opencode_favorite": false,
-      "weights": "~/.cache/huggingface/hub/models--chimingw--Qwen3.8-27B-Uncensored-OrcaRouter-GGUF/snapshots/58ebd123013160600229eda180b5b17f3fb7af9d/Qwen3.8-27B-Uncensored-OrcaRouter-Q4_K_M.gguf",
-      "mmproj": "~/.cache/huggingface/hub/lmstudio-community/Qwen3.8-27B-GGUF/mmproj-Qwen3.8-27B-BF16.gguf"
+      "vision": false,
+      "opencode_favorite": false
     }
+  ],
+  "retired_ids": [
+    "qwen/qwen3.8-27b-unsloth",
+    "qwen/qwen3.8-27b-uncensored"
   ]
 }

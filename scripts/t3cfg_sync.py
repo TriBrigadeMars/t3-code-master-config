@@ -25,7 +25,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILES = ROOT / "profiles"
-ALL_COMPONENTS = {"t3", "omp", "opencode", "qwen"}
+ALL_COMPONENTS = {"t3", "omp", "opencode"}
 
 
 def parse_components(value: str) -> set[str]:
@@ -221,8 +221,6 @@ def main(argv: list[str] | None = None) -> int:
                 t3cfg.apply_opencode(
                     profile, t3cfg.build_opencode_patch(profile), dry_run=False
                 )
-            if "qwen" in components:
-                t3cfg.apply_qwen(profile, dry_run=False)
         except SystemExit as error:
             log(f"apply failed: {error}", log_path)
             return 2

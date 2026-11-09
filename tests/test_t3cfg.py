@@ -69,9 +69,12 @@ class T3PatchTests(unittest.TestCase):
         patch = t3cfg.build_t3_patch(profile)
         favorites = {(item["provider"], item["model"]) for item in patch["favorites"]}
         self.assertIn(("pi", "lm-studio/qwen/qwen3.8-27b"), favorites)
-        self.assertIn(("pi", "lm-studio/qwen/qwen3.8-27b-unsloth"), favorites)
-        self.assertIn(("pi", "lm-studio/qwen/qwen3.8-27b-uncensored"), favorites)
+        self.assertIn(("pi", "lm-studio/14bfe4b42be4a925d98816db830155f476c605e7"), favorites)
+        self.assertIn(("pi", "lm-studio/58ebd123013160600229eda180b5b17f3fb7af9d"), favorites)
         self.assertIn(("opencode", "qwen-local/qwen/qwen3.8-27b"), favorites)
+        removed = {(rule["provider"], rule.get("model")) for rule in patch["favoritesRemove"]}
+        self.assertIn(("pi", "lm-studio/qwen/qwen3.8-27b-unsloth"), removed)
+        self.assertIn(("pi", "lm-studio/qwen/qwen3.8-27b-uncensored"), removed)
         binary = patch["providerInstances"]["pi"]["config"]["binaryPath"]
         self.assertFalse(binary.startswith("~"), binary)
         self.assertTrue(binary.endswith(".bun/bin/omp"), binary)
@@ -178,10 +181,10 @@ class OmpTests(unittest.TestCase):
     def test_models_have_canonical_ids_and_limits(self):
         profile = t3cfg.load_profile("laptop")
         text = t3cfg.build_omp_models(profile)
-        self.assertIn("http://100.95.87.91:1235/v1", text)
+        self.assertIn("http://100.95.87.91:8088/v1", text)
         self.assertIn("qwen/qwen3.8-27b", text)
-        self.assertIn("qwen/qwen3.8-27b-unsloth", text)
-        self.assertIn("qwen/qwen3.8-27b-uncensored", text)
+        self.assertIn("14bfe4b42be4a925d98816db830155f476c605e7", text)
+        self.assertIn("58ebd123013160600229eda180b5b17f3fb7af9d", text)
         self.assertIn("maxTokens: 4096", text)
         self.assertIn("contextWindow: 32768", text)
         self.assertIn("defaultLevel: medium", text)
@@ -207,8 +210,18 @@ class OmpTests(unittest.TestCase):
     def test_env_uses_orcarouter_key(self):
         profile = t3cfg.load_profile("desktop")
         env = t3cfg.build_qwen_env(profile)
-        self.assertIn("OMP_QWEN_MODEL_ORCAROUTER=qwen/qwen3.8-27b-uncensored", env)
-        self.assertNotIn("OMP_QWEN_MODEL_UNCENSORED", env)
+        self.assertIn("OMP_QWEN_MODEL_ORCAROUTER=58ebd123013160600229eda180b5b17f3fb7af9d", env)
+        self.assertIn("OMP_QWEN_MODEL_SWIFT=14bfe4b42be4a925d98816db830155f476c605e7", env)
+        self.assertNotIn("OMP_QWEN_MODEL_UNSLOTH", env)
+        self.assertIn("OMP_QWEN_BASE_URL=http://100.95.87.91:8088/v1", env)
+
+    def test_text_only_model_gets_no_image_input(self):
+        profile = t3cfg.load_profile("desktop")
+        text = t3cfg.build_omp_models(profile)
+        orca = text.split("- id: 58ebd123013160600229eda180b5b17f3fb7af9d")[1].split("- id:")[0]
+        self.assertNotIn("- image", orca)
+        q4 = text.split("- id: qwen/qwen3.8-27b")[1].split("- id:")[0]
+        self.assertIn("- image", q4)
 
 
 class OpenCodeTests(unittest.TestCase):
@@ -216,7 +229,7 @@ class OpenCodeTests(unittest.TestCase):
         profile = t3cfg.load_profile("laptop")
         patch = t3cfg.build_opencode_patch(profile)
         block = patch["providers"]["qwen-local"]
-        self.assertEqual(block["settings"]["baseURL"], "http://100.95.87.91:1235/v1")
+        self.assertEqual(block["settings"]["baseURL"], "http://100.95.87.91:8088/v1")
         self.assertEqual(
             block["package"], "@opencode/ai/providers/openai-compatible"
         )
@@ -224,8 +237,8 @@ class OpenCodeTests(unittest.TestCase):
             set(block["models"]),
             {
                 "qwen/qwen3.8-27b",
-                "qwen/qwen3.8-27b-unsloth",
-                "qwen/qwen3.8-27b-uncensored",
+                "14bfe4b42be4a925d98816db830155f476c605e7",
+                "58ebd123013160600229eda180b5b17f3fb7af9d",
             },
         )
         self.assertEqual(block["models"]["qwen/qwen3.8-27b"]["limit"]["output"], 4096)
@@ -260,11 +273,10 @@ class RenderTests(unittest.TestCase):
                 self.assertTrue((out / "opencode/provider.patch.json").is_file())
                 self.assertTrue((out / "omp/qwen/variant-orcarouter.yml").is_file())
                 self.assertFalse((out / "omp/qwen/variant-uncensored.yml").exists())
-                if profile["qwen"]["role"] == "server":
-                    self.assertTrue((out / "qwen/server.json").is_file())
-                    self.assertTrue((out / "systemd/qwen-inference.service").is_file())
-                else:
-                    self.assertFalse((out / "qwen").exists())
+                self.assertTrue((out / "omp/qwen/variant-swift.yml").is_file())
+                # No machine renders model-server or gateway files: Bionic is the only engine.
+                self.assertFalse((out / "qwen").exists())
+                self.assertFalse((out / "systemd").exists())
 
     def test_no_tokens_in_generated_files(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -297,8 +309,6 @@ class ProfileTests(unittest.TestCase):
             "omp_agent",
             "omp_profile",
             "opencode",
-            "qwen_config",
-            "qwen_share",
             "state",
             "bin",
         }
@@ -306,15 +316,15 @@ class ProfileTests(unittest.TestCase):
             profile = t3cfg.load_profile(name)
             self.assertEqual(profile["id"], name)
             self.assertTrue(required.issubset(profile["paths"]), name)
-            self.assertIn(profile["qwen"]["role"], {"server", "client"})
+            self.assertEqual(set(profile["qwen"]), {"endpoint", "context_window", "max_output_tokens", "default_effort"})
 
     def test_endpoints(self):
         desktop = t3cfg.load_profile("desktop")
         laptop = t3cfg.load_profile("laptop")
         work = t3cfg.load_profile("work")
-        self.assertEqual(desktop["qwen"]["endpoint"], "http://127.0.0.1:1234/v1")
-        self.assertEqual(laptop["qwen"]["endpoint"], "http://100.95.87.91:1235/v1")
-        self.assertEqual(work["qwen"]["endpoint"], "http://100.95.87.91:1235/v1")
+        # All three machines use LM Studio Bionic on the desktop, which binds to its Tailscale address.
+        for profile in (desktop, laptop, work):
+            self.assertEqual(profile["qwen"]["endpoint"], "http://100.95.87.91:8088/v1")
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ class SyncParsingTests(unittest.TestCase):
     def test_all(self):
         self.assertEqual(
             t3cfg_sync.parse_components("all"),
-            {"t3", "omp", "opencode", "qwen"},
+            {"t3", "omp", "opencode"},
         )
 
     def test_list(self):

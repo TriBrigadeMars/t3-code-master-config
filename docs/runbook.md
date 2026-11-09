@@ -16,23 +16,28 @@
 
 ## 1. Desktop (`mars-desktop-cachy`)
 
-The desktop is the only machine that runs the tuned router.
+LM Studio Bionic runs here and is the only local model engine for all three
+machines. It autostarts at login and serves `http://100.95.87.91:8088/v1`.
 
-### 1.1 Stop the competing server
-
-LM Studio Bionic must not hold a large model while the tuned router is running.
-In LM Studio, unload the loaded model or quit the app. Confirm:
+### 1.1 Confirm Bionic is serving
 
 ```bash
-/home/lqfalke/.lmstudio/bin/lms ps
+curl -fsS http://100.95.87.91:8088/v1/models | jq -r '.data[].id'
+lms ps
 ```
 
-If a large model is listed, unload it before continuing.
+Expected ids include:
+
+```
+qwen/qwen3.8-27b
+14bfe4b42be4a925d98816db830155f476c605e7
+58ebd123013160600229eda180b5b17f3fb7af9d
+```
 
 ### 1.2 Apply
 
 ```bash
-./bin/t3cfg apply --profile desktop --only t3,omp,opencode,qwen
+./bin/t3cfg apply --profile desktop --only t3,omp,opencode
 ```
 
 This writes:
@@ -40,31 +45,14 @@ This writes:
 - T3 settings patch (merge, backups)
 - OMP default provider block + isolated Qwen profile
 - OpenCode `qwen-local` provider
-- Qwen router/gateway config and systemd units
 
-It does not start or load a model.
+It never loads a model. Bionic loads one when a client first asks for it.
 
-### 1.3 Start the router and gateway
-
-```bash
-systemctl --user daemon-reload
-systemctl --user enable --now qwen-inference.service
-systemctl --user enable --now qwen-laptop-gateway.service
-```
-
-### 1.4 Verify
+### 1.3 Verify
 
 ```bash
-curl -fsS http://127.0.0.1:1234/v1/models | jq -r '.data[].id'
 ./bin/t3cfg doctor --profile desktop
-```
-
-Expected IDs:
-
-```
-qwen/qwen3.8-27b
-qwen/qwen3.8-27b-unsloth
-qwen/qwen3.8-27b-uncensored
+omp-qwen --check
 ```
 
 ### 1.5 Reopen T3 and test
@@ -74,22 +62,22 @@ qwen/qwen3.8-27b-uncensored
 - `pi` local Qwen Q4: one short prompt.
 - `opencode` `qwen-local/qwen/qwen3.8-27b`: one short prompt.
 
+The first local prompt makes Bionic load the model, which can take a few minutes.
+
 ## 2. Laptop (`mars-laptop`)
 
-The laptop consumes the desktop gateway; it does not need the GGUF files or the
-intelfa build.
+The laptop uses Bionic on the desktop over Tailscale; it needs no model files.
 
-### 2.1 Confirm the gateway
+### 2.1 Confirm it can reach Bionic
 
 On the laptop:
 
 ```bash
-curl -fsS http://100.95.87.91:1235/health
-curl -fsS http://100.95.87.91:1235/v1/models | jq -r '.data[].id'
+curl -fsS http://100.95.87.91:8088/v1/models | jq -r '.data[].id'
 ```
 
-If this fails, fix the desktop router/gateway first. The laptop cannot fix a dead
-upstream.
+If this fails, check that Bionic is running on the desktop and that both machines
+are up in `tailscale status`.
 
 ### 2.2 Apply
 
@@ -106,8 +94,7 @@ cd t3-code-master-config
 ./bin/t3cfg doctor --profile laptop
 ```
 
-`doctor` must run on the laptop; running it on the desktop only checks the
-desktop side of the endpoint.
+`doctor` must run on the laptop so it checks the laptop's own files.
 
 ### 2.4 If Tailscale SSH is blocked
 
@@ -117,7 +104,8 @@ approve the Tailscale check first. This is an access issue, not a config issue.
 
 ## 3. AMC work laptop (`work`)
 
-The work laptop is offline. Its profile defaults to the desktop gateway.
+The work laptop is offline. Like the laptop, it uses Bionic on the desktop over
+Tailscale.
 
 When it is online:
 
@@ -129,14 +117,6 @@ When it is online:
 
 If the machine is booted into Linux, copy `profiles/work.json` to a Linux
 profile and replace `%USERPROFILE%`/`%APPDATA%` with `~` paths.
-
-If the server should own its own router instead of using the desktop:
-
-1. Set `qwen.role` to `server`.
-2. Set `qwen.endpoint` to `http://127.0.0.1:1234/v1`.
-3. Add the `qwen` component to `--only`.
-4. Ensure the intelfa build, GGUFs, `serve.py`, and `tune.py` exist on that
-   machine.
 
 ## 4. Rollback
 
@@ -161,8 +141,9 @@ Restart T3/OpenCode after restoring.
 | Symptom | Check |
 |---|---|
 | `T3 is running` | Quit T3, or use `--force` only if you accept that T3 may overwrite the file |
-| `Local /v1/models ... connection refused` | Start `qwen-inference.service`; check `:1234` |
-| Laptop `/v1/models` fails | Check `qwen-laptop-gateway.service` and the desktop router |
+| `Bionic /v1/models ... connection refused` | Start Bionic on the desktop; check `tailscale status` |
+| First local request takes minutes | Bionic is loading the 17 GB model; later requests are fast |
+| VRAM spill or very slow prompts | Another app (e.g. Unsloth Studio) holds a model; unload it there |
 | `grok-4.7` still hidden | Apply `--only t3`; confirm `hiddenModels` in doctor |
 | Cursor still says `Model unavailable on Plus` | Run `./bin/t3cfg guard --profile <name>`; it names the exact favorite and option defect |
 | Cursor works, then breaks again later | T3 rewrote `settings.json` and dropped `options`; the timer's guard/apply loop repairs it on the next pass after T3 quits |
