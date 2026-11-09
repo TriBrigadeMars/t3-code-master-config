@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import copy
 import difflib
+import filecmp
 import json
 import os
 import re
@@ -89,6 +90,10 @@ def backup(path: Path) -> Path | None:
 
 def copy_with_backup(src: Path, dst: Path, mode: int | None = None) -> None:
     dst.parent.mkdir(parents=True, exist_ok=True)
+    if dst.exists() and filecmp.cmp(src, dst, shallow=False):
+        if mode is not None:
+            dst.chmod(mode)
+        return
     backup(dst)
     shutil.copy2(src, dst)
     if mode is not None:
@@ -719,6 +724,11 @@ def apply_omp(profile: dict, dry_run: bool) -> None:
             print(f"[dry-run] would write {path}")
             continue
         path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists() and path.read_text(encoding="utf-8") == content:
+            if mode is not None:
+                path.chmod(mode)
+            print(f"unchanged {path}")
+            continue
         backup(path)
         path.write_text(content, encoding="utf-8")
         if mode is not None:
